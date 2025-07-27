@@ -1,33 +1,28 @@
-# BalanceSpikeTrap.sol
-🎯 Objective
+# HeartbeatBalanceTrap
+
+## Objective
 Build and deploy a fully functional Drosera trap that:
+- Monitors ETH balance spikes of a specific wallet.
+- Uses the standard collect() / shouldRespond() interface.
+- Triggers a response when balance deviation exceeds 5%.
+- Integrates with a separate response contract to handle alert logic.
 
-Monitors ETH balance spikes of a specific wallet,
-
-Uses the standard collect() / shouldRespond() interface,
-
-Triggers a response when balance deviation exceeds 5%,
-
-Integrates with a separate response contract to handle alert logic.
-
-⚠️ Problem
+## Problem
 Ethereum wallets used by DAOs, DeFi protocols, or multisig treasuries are critical infrastructure.
 Any unexpected ETH movement — whether loss or gain — might signal:
 
-Private key compromise,
+- Private key compromise,
+- Automation bugs,
+- Exploits or misconfigurations.
 
-Automation bugs,
-
-Exploits or misconfigurations.
-
-✅ Solution: Detect Balance Spikes
+## Solution
 The trap monitors ETH balance over consecutive blocks. If a change of 5% or more is detected (up or down), it triggers a custom alert handler to log the anomaly or initiate a reaction.
 
-⚙️ Trap Logic Summary
-📁 Trap Contract: BalanceSpikeTrap.sol
-solidity
-Копировать
-Редактировать
+## Trap Logic
+
+**Contract: BalanceSpikeTrap.sol**
+
+```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -62,10 +57,13 @@ contract BalanceSpikeTrap is ITrap {
         return (false, "");
     }
 }
-🔔 Response Contract: CustomAlertReceiver.sol
-solidity
-Копировать
-Редактировать
+```
+
+## Response Contract
+
+**Contract: CustomAlertReceiver.sol**
+
+```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -78,62 +76,54 @@ contract CustomAlertReceiver {
         emit SpikeDetected(message, current, previous);
     }
 }
-🚀 Deployment & Setup Instructions
-1. Compile the Contracts
+```
+
+
+## Deployment & Setup
+
+Deploy contracts with Foundry:
+
 bash
-Копировать
-Редактировать
-forge build
-2. Deploy to Drosera Network (Ethereum Hoodi Testnet)
-bash
-Копировать
-Редактировать
+
+```solidity
 forge create src/CustomAlertReceiver.sol:CustomAlertReceiver \
   --rpc-url https://ethereum-hoodi-rpc.publicnode.com \
   --private-key 0xYOUR_PRIVATE_KEY
-Copy the contract address shown after Deployed to:.
+```
 
-3. Update drosera.toml
-toml
-Копировать
-Редактировать
-[traps.mytrap]
+Update `drosera.toml`:
+
+[traps.heartbeat]
+
 path = "out/BalanceSpikeTrap.sol/BalanceSpikeTrap.json"
+
 response_contract = "0x<YOUR_DEPLOYED_CustomAlertReceiver_ADDRESS>"
+
 response_function = "handleSpike(bytes)"
-4. Apply Configuration
+
+Apply changes:
+
 bash
-Копировать
-Редактировать
+
+```solidity
 DROSERA_PRIVATE_KEY=0xYOUR_PRIVATE_KEY drosera apply
-🧪 Testing the Trap
-Send ETH to or from address 0x52Aaa7E1332b0E9581dE47A8539Ced670458069d on Ethereum Hoodi testnet.
+```
 
-Wait a few blocks.
+## Testing the Trap
+- Send ETH to or from address 0x52Aaa7E1332b0E9581dE47A8539Ced670458069d on Ethereum Hoodi testnet.
+- Wait a few blocks.
+- Monitor Drosera operator logs or dashboard.
+- Look for:
+  shouldRespond = true
 
-Watch logs from the Drosera operator or dashboard.
+## Ideas for Extension
+- Add a setter to change spikePercent dynamically.
+- Support ERC-20 token balance tracking.
+- Chain multiple traps and aggregate their output.
 
-Look for:
-
-ini
-Копировать
-Редактировать
-shouldRespond = true
-🔧 Ideas for Extension
-Add a setter to change spikePercent dynamically,
-
-Support ERC-20 token balance tracking,
-
-Chain multiple traps and aggregate their output.
-
-📅 Date & Author
-First created: July 26, 2025
-
-Author: Namfuentesganti
-
-Telegram: @likisili
-
-Discord: namfuentesganti
-
-Gmail: bawanyloaqp6610@gmail.com
-
+## Metadata
+- Created: July 26, 2025
+- Author: Namfuentesganti
+- Telegram: @likisili
+- Discord: namfuentesganti
+- Email: bawanyloaqp6610@gmail.com
