@@ -1,4 +1,4 @@
-# HeartbeatBalanceTrap
+# BalanceSpikeTrap
 
 ## Objective
 Build and deploy a fully functional Drosera trap that:
