@@ -1,22 +1,22 @@
 # BalanceSpikeTrap
 
 ## Objective
-Build and deploy a fully functional Drosera trap that:
+Deploy a Drosera-compatible trap that:
 - Monitors ETH balance spikes of a specific wallet.
 - Uses the standard collect() / shouldRespond() interface.
-- Triggers a response when balance deviation exceeds 5%.
-- Integrates with a separate response contract to handle alert logic.
+- Triggers if the balance increases or decreases by ≥5%.
+- Passes the balance data to an external alert contract (e.g., CustomAlertReceiver).
 
 ## Problem
-Ethereum wallets used by DAOs, DeFi protocols, or multisig treasuries are critical infrastructure.
-Any unexpected ETH movement — whether loss or gain — might signal:
+Wallets used by DAOs, DeFi protocols, or multisig treasuries often hold large amounts of ETH. Any unexpected movement of funds — either a spike or drop — may indicate:
 
 - Private key compromise,
 - Automation bugs,
 - Exploits or misconfigurations.
 
 ## Solution
-The trap monitors ETH balance over consecutive blocks. If a change of 5% or more is detected (up or down), it triggers a custom alert handler to log the anomaly or initiate a reaction.
+The trap monitors the ETH balance of a user-defined target address over time.
+If the balance changes by 5% or more (up or down), it triggers a response contract which logs or reacts to the anomaly.
 
 ## Trap Logic
 
@@ -32,20 +32,24 @@ interface ITrap {
 }
 
 contract BalanceSpikeTrap is ITrap {
-    address public constant target = 0x52Aaa7E1332b0E9581dE47A8539Ced670458069d;
+    address public target;
     uint256 public constant spikePercent = 5;
+
+    constructor(address _target) {
+        target = _target;
+    }
 
     function collect() external view override returns (bytes memory) {
         return abi.encode(target.balance);
     }
 
     function shouldRespond(bytes[] calldata data) external pure override returns (bool, bytes memory) {
-        if (data.length < 2) return (false, "Not enough data");
+        if (data.length < 2) return (false, abi.encode("Not enough data"));
 
         uint256 current = abi.decode(data[0], (uint256));
         uint256 previous = abi.decode(data[1], (uint256));
 
-        if (previous == 0) return (false, "No baseline");
+        if (previous == 0) return (false, abi.encode("No baseline"));
 
         uint256 change = current > previous ? current - previous : previous - current;
         uint256 percentChange = (change * 100) / previous;
@@ -68,12 +72,12 @@ contract BalanceSpikeTrap is ITrap {
 pragma solidity ^0.8.20;
 
 contract CustomAlertReceiver {
-    event SpikeDetected(string message, uint256 currentBalance, uint256 previousBalance);
+    event SpikeDetected(address indexed triggeredBy, string message, uint256 currentBalance, uint256 previousBalance);
 
     function handleSpike(bytes calldata data) external {
         (uint256 current, uint256 previous) = abi.decode(data, (uint256, uint256));
         string memory message = "Balance spike detected!";
-        emit SpikeDetected(message, current, previous);
+        emit SpikeDetected(msg.sender, message, current, previous);
     }
 }
 ```
@@ -110,11 +114,14 @@ DROSERA_PRIVATE_KEY=0xYOUR_PRIVATE_KEY drosera apply
 ```
 
 ## Testing the Trap
-- Send ETH to or from address 0x52Aaa7E1332b0E9581dE47A8539Ced670458069d on Ethereum Hoodi testnet.
-- Wait a few blocks.
-- Monitor Drosera operator logs or dashboard.
-- Look for:
-  shouldRespond = true
+
+Send ETH to/from the target address.
+
+Wait a few blocks.
+
+Check Drosera logs — look for shouldRespond = true.
+
+Confirm SpikeDetected event was emitted
 
 ## Ideas for Extension
 - Add a setter to change spikePercent dynamically.
